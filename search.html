@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Search | Web Client Project</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Top area (required: Hello username) -->
+  <header class="search-header">
+    <div class="user-area">
+      <img id="userAvatar" class="user-avatar" src="" alt="User" />
+      <div>
+        <div id="helloText" class="hello-text">Hello</div>
+        <div id="userTag" class="user-tag"></div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a class="link-btn" href="index.html">Home</a>
+      <a class="link-btn" href="playlists.html">Playlists</a>
+      <button class="danger-btn" id="logoutBtn" type="button">Logout</button>
+    </div>
+  </header>
+
+  <main class="search-page">
+    <h2>YouTube Search</h2>
+
+    <div class="search-bar">
+      <input id="query" type="text" placeholder="Search for videos..." />
+      <button id="searchBtn" class="primary-btn" type="button">Search</button>
+    </div>
+
+    <p id="statusText" class="hint"></p>
+
+    <div id="results" class="results-grid"></div>
+  </main>
+
+  <!-- Play Modal -->
+  <div id="playModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div id="playTitle" class="modal-title">Playing</div>
+        <button id="closePlay" class="x-btn" type="button">✕</button>
+      </div>
+      <div class="video-frame">
+        <iframe id="player" src="" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add to Favorites Modal -->
+  <div id="favModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Add to Favorites</div>
+        <button id="closeFav" class="x-btn" type="button">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-row">
+          <label>Choose existing playlist</label>
+          <select id="playlistSelect">
+            <option value="">-- Select --</option>
+          </select>
+        </div>
+
+        <div class="or-sep">OR</div>
+
+        <div class="form-row">
+          <label>Create new playlist</label>
+          <input id="newPlaylistName" type="text" placeholder="New playlist name..." />
+        </div>
+
+        <button id="saveFavBtn" class="primary-btn" type="button">Save</button>
+        <p id="favError" class="error-msg"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden">
+    <span id="toastText"></span>
+  </div>
+
+  <script src="search.js"></script>
+</body>
+</html>

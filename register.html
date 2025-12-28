@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Register</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="register.js" defer></script>
+</head>
+<body>
+
+  <div class="register-wrapper">
+    <div class="register-card">
+      <h1>Create Account</h1>
+      <p>Fill all fields, then you will go to Login</p>
+
+      <form id="registerForm">
+        <div class="form-group">
+          <label>Username</label>
+          <input id="username" type="text" required />
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <input id="password" type="password" required />
+        </div>
+
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <input id="confirmPassword" type="password" required />
+        </div>
+
+        <div class="form-group">
+          <label>First Name</label>
+          <input id="firstName" type="text" required />
+        </div>
+
+        <div class="form-group">
+          <label>Profile Image</label>
+          <input id="image" type="file" accept="image/*" required />
+        </div>
+
+        <button class="register-btn" type="submit">Create Account</button>
+      </form>
+
+      <p id="msg" class="error-msg"></p>
+    </div>
+  </div>
+
+</body>
+</html>
