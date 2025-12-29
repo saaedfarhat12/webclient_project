@@ -1,5 +1,5 @@
 // ===== Put your YouTube API key here =====
-const YT_API_KEY = "PASTE_YOUR_API_KEY_HERE";
+const YT_API_KEY = "AIzaSyBjEVanoV8OJ6iM_Hi_ODD2OT1DGyjq1GY";
 
 const resultsEl = document.getElementById("results");
 const queryEl = document.getElementById("query");
