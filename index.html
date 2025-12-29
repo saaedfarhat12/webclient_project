@@ -1,46 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    
-    <meta charset="UTF-8">
-    <title>Web Client Project | Home</title>
-    <meta charset="UTF-8">
-    <title>Web Client Project | Home</title>
-    <link rel="stylesheet" href="style.css">
-    
-
+  <meta charset="UTF-8" />
+  <title>Web Client Project | Home</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-    <div class="card">
-        <h1>Web Client Project</h1>
+  <!-- Top Header (Desktop) -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <div class="brand-title">Web Client Project</div>
+        <div class="brand-sub">YouTube Search & Playlists</div>
+      </div>
 
-        <p>
-            Student Name: Saad Farhat <br>
-            Student ID: 213380538
-        </p>
-
-        <div class="buttons">
-            <button class="register" onclick="location.href='register.html'">
-                Register
-            </button>
-
-            <button class="login" onclick="location.href='login.html'">
-                Sign In
-            </button>
-        </div>
-
-        <div class="links">
-            <a href="https://github.com/saaedfarhat12/webclient_project.git" target="_blank">
-                GitHub
-            </a>
-            |
-            <a href="https://YOUR_LIVE_WEBPAGE_LINK" target="_blank">
-                Live Website
-            </a>
-        </div>
+      <nav class="header-nav">
+        <a class="nav-link" href="register.html">Register</a>
+        <a class="nav-link" href="login.html">Sign In</a>
+        <a class="nav-link" href="search.html">Search</a>
+      </nav>
     </div>
+  </header>
+
+  <!-- Main Layout (Desktop) -->
+  <main class="container home-layout">
+    <section class="home-panel card-surface">
+      <h1 class="home-title">Welcome</h1>
+      <p class="home-text">
+        Student Name: <b>Saad Farhat</b><br />
+        Student ID: <b>213380538</b>
+      </p>
+
+      <div class="home-links">
+        <a class="link-pill" href="https://github.com/saaedfarhat12/webclient_project.git" target="_blank">GitHub</a>
+        <a class="link-pill" href="https://saaedfarhat12.github.io/webclient_project/" target="_blank">Live Website</a>
+      </div>
+    </section>
+
+    <section class="home-actions">
+        <div class="action-card card-surface">
+        <h2>Get Started</h2>
+        <p>Create an account or sign in to continue to the search page.</p>
+
+        <div class="action-buttons">
+          <button class="btn btn-primary" onclick="location.href='register.html'">Register</button>
+          <button class="btn btn-outline" onclick="location.href='login.html'">Sign In</button>
+        </div>
+
+        <div class="action-note">
+          Already logged in? Go to <a href="search.html">Search</a>.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>© Web Client Project</span>
+      <span class="dot">•</span>
+      <span>Desktop layout</span>
+    </div>
+  </footer>
 
 </body>
-
 </html>

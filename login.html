@@ -1,37 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Sign In</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Sign In | Web Client Project</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<div class="register-wrapper">
-    <div class="register-card">
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <div class="brand-title">Web Client Project</div>
+        <div class="brand-sub">Sign in to continue</div>
+      </div>
 
-        <h1>Sign In</h1>
-        <p>Enter your account details</p>
-
-        <form id="loginForm">
-
-            <div class="form-group">
-                <label>Username</label>
-                <input type="text" id="loginUsername" required>
-            </div>
-
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="loginPassword" required>
-            </div>
-
-            <button class="login-btn" type="submit">Sign In</button>
-        </form>
-
-        <p id="loginError" class="error-msg"></p>
+      <nav class="header-nav">
+        <a class="nav-link" href="index.html">Home</a>
+        <a class="nav-link" href="register.html">Register</a>
+        <a class="nav-link" href="search.html">Search</a>
+      </nav>
     </div>
-</div>
+  </header>
 
-<script src="login.js"></script>
+  <!-- Main -->
+  <main class="container auth-layout">
+    <!-- Left info panel -->
+    <section class="auth-info">
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-text">
+        Sign in with your username and password.<br />
+        After sign in, you will go to the Search page.
+      </p>
+
+      <div class="auth-links">
+        <a class="link-pill" href="https://github.com/saaedfarhat12/webclient_project.git" target="_blank">GitHub</a>
+        <a class="link-pill" href="https://saaedfarhat12.github.io/webclient_project/" target="_blank">Live Website</a>
+      </div>
+    </section>
+
+    <!-- Right form panel -->
+    <section class="auth-panel">
+      <div class="panel-card">
+        <h2>Sign In</h2>
+        <p class="muted">Enter your account details</p>
+
+        <form id="loginForm" class="form-grid">
+          <div class="field">
+            <label for="loginUsername">Username</label>
+            <input type="text" id="loginUsername" placeholder="Enter username" required />
+          </div>
+
+          <div class="field">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" placeholder="Enter password" required />
+          </div>
+
+          <button class="btn btn-primary" type="submit">Sign In</button>
+          <p id="loginError" class="error-text"></p>
+
+          <div class="small-note">
+            Don’t have an account? <a href="register.html">Create one</a>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>© Web Client Project</span>
+      <span class="dot">•</span>
+      <span>Desktop layout</span>
+    </div>
+  </footer>
+
+  <script src="login.js"></script>
 </body>
 </html>
