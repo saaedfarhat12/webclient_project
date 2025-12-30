@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Playlists | Web Client Project</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Rating stars style (small + doesn't change layout) -->
+  <style>
+    .pl-rating { margin-top: 8px; display: inline-flex; gap: 6px; font-size: 18px; }
+    .pl-rating .star { cursor: pointer; opacity: 0.35; user-select: none; }
+    .pl-rating .star.on { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="search-header">
+    <div class="user-area">
+      <img id="userAvatar" class="user-avatar" src="" alt="User" />
+      <div>
+        <div id="helloText" class="hello-text">Hello</div>
+        <div id="userTag" class="user-tag"></div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a class="link-btn" href="index.html">Home</a>
+      <a class="link-btn" href="search.html">Search</a>
+      <button class="danger-btn" id="logoutBtn" type="button">Logout</button>
+    </div>
+  </header>
+
+  <main class="pl-page">
+    <div class="pl-layout">
+
+      <!-- Sidebar -->
+      <aside class="pl-sidebar card-surface">
+        <div class="pl-side-head">
+          <h2 class="pl-side-title">My Library</h2>
+          <button id="newPlaylistBtn" class="btn btn-primary" type="button">+ New Playlist</button>
+        </div>
+
+        <div id="playlistList" class="pl-list"></div>
+      </aside>
+
+      <!-- Main -->
+      <section class="pl-main card-surface">
+        <div class="pl-main-head">
+          <div>
+            <h2 id="activePlaylistName" class="pl-main-title">Choose a playlist</h2>
+            <p id="activePlaylistMeta" class="pl-main-sub">Select a playlist from the list</p>
+          </div>
+
+          <div class="pl-main-actions">
+            <button id="playPlaylistBtn" class="btn btn-primary" type="button" disabled>▶ Play Playlist</button>
+
+            <input id="filterInput" class="pl-input" type="text" placeholder="Search inside playlist..." />
+
+            <select id="sortSelect" class="pl-select">
+              <option value="az">Sort A–Z</option>
+              <option value="za">Sort Z–A</option>
+              <option value="rate">Top Rated</option>
+            </select>
+
+            <button id="deletePlaylistBtn" class="btn btn-outline" type="button" disabled>Delete playlist</button>
+          </div>
+        </div>
+
+        <div id="videosArea" class="pl-videos-empty">Choose a playlist from the list</div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- New Playlist Modal -->
+  <div id="plModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Create New Playlist</div>
+        <button id="closeModal" class="x-btn" type="button">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-row">
+          <label>Playlist name</label>
+          <input id="playlistNameInput" type="text" placeholder="e.g. My Favorites" />
+        </div>
+
+        <button id="createPlaylistBtn" class="primary-btn" type="button">Create</button>
+        <p id="modalError" class="error-msg"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Play Modal (play inside website) -->
+  <div id="playModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div id="playTitle" class="modal-title">Playing</div>
+        <button id="closePlay" class="x-btn" type="button">✕</button>
+      </div>
+      <div class="video-frame">
+        <iframe id="player" src="" allow="autoplay" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden">
+    <span id="toastText"></span>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
