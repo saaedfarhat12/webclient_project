@@ -54,15 +54,19 @@
 
           <div class="pl-main-actions">
             <button id="playPlaylistBtn" class="btn btn-primary" type="button" disabled>▶ Play Playlist</button>
-
+          
+            <!-- ✅ MP3 Upload -->
+            <button id="uploadMp3Btn" class="btn btn-primary" type="button" disabled>+ Upload MP3</button>
+            <input id="mp3Input" type="file" accept=".mp3,audio/mpeg" hidden />
+          
             <input id="filterInput" class="pl-input" type="text" placeholder="Search inside playlist..." />
-
+          
             <select id="sortSelect" class="pl-select">
               <option value="az">Sort A–Z</option>
               <option value="za">Sort Z–A</option>
               <option value="rate">Top Rated</option>
             </select>
-
+          
             <button id="deletePlaylistBtn" class="btn btn-outline" type="button" disabled>Delete playlist</button>
           </div>
         </div>

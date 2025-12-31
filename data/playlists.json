@@ -1,0 +1,23 @@
+[
+  {
+    "id": "pl_1767197935308",
+    "username": "saadf12",
+    "name": "saadf12_playlist",
+    "videos": [
+      {
+        "type": "yt",
+        "videoId": "erd3fTm-2t8",
+        "title": "Ed Sheeran – Shape of You (Lyrics)",
+        "thumb": "https://i.ytimg.com/vi/erd3fTm-2t8/mqdefault.jpg",
+        "rating": 5
+      },
+      {
+        "type": "yt",
+        "videoId": "g4t2GDIoquE",
+        "title": "אייל גולן כשאת איתו Eyal Golan",
+        "thumb": "https://i.ytimg.com/vi/g4t2GDIoquE/mqdefault.jpg",
+        "rating": 3
+      }
+    ]
+  }
+]

@@ -1,9 +1,10 @@
 /*************************************************
   app.js  — ONE SINGLE JS FILE FOR THE WHOLE PROJECT
-  Part 1 (LocalStorage + SessionStorage)
+  Part 2 (Server + users.json + playlists.json)
   + YouTube search
   + Playlists
   + Rating (stars) + Sort by rating
+  + MP3 Upload to playlist (server uploads/)
 **************************************************/
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -19,61 +20,64 @@ document.addEventListener("DOMContentLoaded", () => {
         .replaceAll("'", "&#039;");
     }
   
-    // ---------- LocalStorage Users ----------
-    function loadUsers() {
-      return JSON.parse(localStorage.getItem("users")) || [];
-    }
-    function saveUsers(users) {
-      localStorage.setItem("users", JSON.stringify(users));
-    }
-  
-    // ---------- Session User ----------
-    function getCurrentUser() {
-      try {
-        return JSON.parse(sessionStorage.getItem("currentUser"));
-      } catch {
-        return null;
-      }
-    }
-    function setCurrentUser(userObj) {
-      sessionStorage.setItem("currentUser", JSON.stringify(userObj));
+    // Simple API helper
+    async function api(url, options = {}) {
+      const res = await fetch(url, {
+        headers: options.body instanceof FormData ? undefined : { "Content-Type": "application/json" },
+        ...options,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      return data;
     }
   
-    // ---------- Page Guard ----------
+    // ---------- YouTube API key ----------
+    const YT_API_KEY = "AIzaSyBjEVanoV8OJ6iM_Hi_ODD2OT1DGyjq1GY";
+  
+    function openYoutube(videoId) {
+      window.open(`https://www.youtube.com/watch?v=${videoId}`, "_blank");
+    }
+  
+    // ---------- Auth (server session) ----------
     const protectedPages = new Set(["search.html", "playlists.html"]);
     const page = (location.pathname.split("/").pop() || "").toLowerCase();
   
-    if (protectedPages.has(page) && !getCurrentUser()) {
-      location.href = "login.html";
-      return;
-    }
+    let currentUser = null;
   
-    // ---------- Header (if exists) ----------
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      if ($("helloText")) $("helloText").textContent = `Hello ${currentUser.firstName || ""}`.trim();
-      if ($("userTag")) $("userTag").textContent = currentUser.username ? `@${currentUser.username}` : "";
-      if ($("userAvatar")) {
-        if (currentUser.image) $("userAvatar").src = currentUser.image;
-        else $("userAvatar").style.display = "none";
+    async function loadMeOrRedirect() {
+      try {
+        currentUser = await api("/api/me");
+        // Header
+        if ($("helloText")) $("helloText").textContent = `Hello ${currentUser.firstName || ""}`.trim();
+        if ($("userTag")) $("userTag").textContent = currentUser.username ? `@${currentUser.username}` : "";
+        if ($("userAvatar")) {
+          if (currentUser.image) $("userAvatar").src = currentUser.image;
+          else $("userAvatar").style.display = "none";
+        }
+      } catch (e) {
+        if (protectedPages.has(page)) {
+          location.href = "login.html";
+          return false;
+        }
       }
+      return true;
     }
   
-    // ---------- Logout ----------
+    // Logout
     const logoutBtn = $("logoutBtn");
     if (logoutBtn) {
-      logoutBtn.addEventListener("click", () => {
-        sessionStorage.removeItem("currentUser");
+      logoutBtn.addEventListener("click", async () => {
+        try {
+          await api("/api/logout", { method: "POST" });
+        } catch {}
         location.href = "index.html";
       });
     }
   
-    /*********************
-      REGISTER PAGE LOGIC
-    *********************/
+    // ---------- REGISTER ----------
     const registerForm = $("registerForm");
     if (registerForm) {
-      const msg = $("msg"); // optional
+      const msg = $("msg");
       registerForm.addEventListener("submit", (e) => {
         e.preventDefault();
   
@@ -87,17 +91,13 @@ document.addEventListener("DOMContentLoaded", () => {
           if (msg) {
             msg.style.color = "red";
             msg.textContent = t;
-          } else {
-            alert(t);
-          }
+          } else alert(t);
         };
         const setOk = (t) => {
           if (msg) {
             msg.style.color = "green";
             msg.textContent = t;
-          } else {
-            alert(t);
-          }
+          } else alert(t);
         };
   
         if (!username || !password || !confirmPassword || !firstName) return setErr("All fields are required");
@@ -109,78 +109,98 @@ document.addEventListener("DOMContentLoaded", () => {
   
         if (password !== confirmPassword) return setErr("Passwords do not match");
   
-        const users = loadUsers();
-        const exists = users.some((u) => String(u.username || "").toLowerCase() === username.toLowerCase());
-        if (exists) return setErr("Username already exists");
-  
         const file = imageInput.files[0];
         const reader = new FileReader();
-        reader.onload = () => {
-          users.push({
-            username,
-            password,
-            firstName,
-            image: reader.result, // base64
-          });
-          saveUsers(users);
   
-          setOk("Account created! Redirecting to login...");
-          setTimeout(() => (location.href = "login.html"), 700);
+        reader.onload = async () => {
+          try {
+            await api("/api/register", {
+              method: "POST",
+              body: JSON.stringify({
+                username,
+                password,
+                firstName,
+                image: reader.result, // base64
+              }),
+            });
+  
+            setOk("Account created! Redirecting to login...");
+            setTimeout(() => (location.href = "login.html"), 700);
+          } catch (err) {
+            setErr(err.message);
+          }
         };
+  
         reader.readAsDataURL(file);
       });
     }
   
-    /******************
-      LOGIN PAGE LOGIC
-    ******************/
+    // ---------- LOGIN ----------
     const loginForm = $("loginForm");
     if (loginForm) {
-      const loginError = $("loginError"); // optional
-      loginForm.addEventListener("submit", (e) => {
+      const loginError = $("loginError");
+      loginForm.addEventListener("submit", async (e) => {
         e.preventDefault();
   
         const username = $("loginUsername")?.value.trim();
         const password = $("loginPassword")?.value || "";
   
-        const users = loadUsers();
-        const user = users.find((u) => u.username === username && u.password === password);
-  
-        if (!user) {
-          if (loginError) loginError.textContent = "Invalid username or password";
-          else alert("Invalid username or password");
-          return;
+        try {
+          await api("/api/login", { method: "POST", body: JSON.stringify({ username, password }) });
+          location.href = "search.html";
+        } catch (err) {
+          if (loginError) loginError.textContent = err.message || "Invalid username or password";
+          else alert(err.message || "Invalid username or password");
         }
-  
-        setCurrentUser(user);
-        location.href = "search.html";
       });
     }
   
-    /****************************
-      PLAYLISTS STORAGE (PER USER)
-    ****************************/
-    function playlistsKey() {
-      const u = getCurrentUser();
-      return u ? `playlists_${u.username}` : "playlists_guest";
+    // ---------- Playlists API ----------
+    async function fetchPlaylists() {
+      return await api("/api/playlists");
     }
-    function loadPlaylists() {
-      return JSON.parse(localStorage.getItem(playlistsKey())) || [];
+    async function createPlaylist(name) {
+      return await api("/api/playlists", { method: "POST", body: JSON.stringify({ name }) });
     }
-    function savePlaylists(pls) {
-      localStorage.setItem(playlistsKey(), JSON.stringify(pls));
+    async function deletePlaylist(id) {
+      return await api(`/api/playlists/${id}`, { method: "DELETE" });
+    }
+    async function addYoutubeToPlaylist(playlistId, video) {
+      // server expects: videoId,title,thumb
+      return await api(`/api/playlists/${playlistId}/videos`, {
+        method: "POST",
+        body: JSON.stringify({ videoId: video.id, title: video.title, thumb: video.thumb }),
+      });
+    }
+    async function removeItem(playlistId, itemId) {
+      return await api(`/api/playlists/${playlistId}/items/${itemId}`, { method: "DELETE" });
+    }
+    async function rateItem(playlistId, itemId, rating) {
+      return await api(`/api/playlists/${playlistId}/items/${itemId}/rating`, {
+        method: "PUT",
+        body: JSON.stringify({ rating }),
+      });
+    }
+    async function uploadMp3ToPlaylist(playlistId, file) {
+      const fd = new FormData();
+      fd.append("mp3", file);
+  
+      const res = await fetch(`/api/playlists/${playlistId}/mp3`, {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      return data;
     }
   
-    /*********************
-      SEARCH PAGE (YouTube)
-      + Add to Favorites (Playlists)
-    *********************/
+    // ---------- SEARCH (YouTube) ----------
     const queryEl = $("query");
     const searchBtn = $("searchBtn");
     const resultsEl = $("results");
     const statusText = $("statusText");
   
-    // Favorites modal elements exist only on search.html
+    // Favorites modal
     const favModal = $("favModal");
     const closeFav = $("closeFav");
     const playlistSelect = $("playlistSelect");
@@ -188,18 +208,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const saveFavBtn = $("saveFavBtn");
     const favError = $("favError");
   
-    //  YouTube API key 
-    const YT_API_KEY = "AIzaSyBjEVanoV8OJ6iM_Hi_ODD2OT1DGyjq1GY";
+    let selectedVideo = null;
   
-    let selectedVideo = null; // {id,title,thumb}
-  
-    function openYoutube(videoId) {
-      window.open(`https://www.youtube.com/watch?v=${videoId}`, "_blank");
+    function closeFavModal() {
+      if (!favModal) return;
+      favModal.classList.add("hidden");
+      selectedVideo = null;
     }
   
-    function fillPlaylistSelect() {
+    async function fillPlaylistSelect() {
       if (!playlistSelect) return;
-      const pls = loadPlaylists();
+      const pls = await fetchPlaylists();
       playlistSelect.innerHTML = `<option value="">-- Select --</option>`;
       pls.forEach((pl) => {
         const opt = document.createElement("option");
@@ -209,21 +228,15 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   
-    function openFavModal(video) {
+    async function openFavModal(video) {
       selectedVideo = video;
       if (!favModal) return;
   
       if (favError) favError.textContent = "";
       if (newPlaylistName) newPlaylistName.value = "";
-      fillPlaylistSelect();
+      await fillPlaylistSelect();
   
       favModal.classList.remove("hidden");
-    }
-  
-    function closeFavModal() {
-      if (!favModal) return;
-      favModal.classList.add("hidden");
-      selectedVideo = null;
     }
   
     async function youtubeSearch(q) {
@@ -261,7 +274,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const card = document.createElement("div");
         card.className = "video-card";
   
-        // Thumbnail
         const thumbWrap = document.createElement("div");
         thumbWrap.className = "thumb-wrap";
         thumbWrap.addEventListener("click", () => openYoutube(v.id));
@@ -272,7 +284,6 @@ document.addEventListener("DOMContentLoaded", () => {
         img.alt = "thumbnail";
         thumbWrap.appendChild(img);
   
-        // Info
         const info = document.createElement("div");
         info.className = "video-info";
   
@@ -311,6 +322,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
     async function doSearch() {
       if (!queryEl || !resultsEl) return;
+  
       const q = queryEl.value.trim();
       if (!q) {
         if (statusText) statusText.textContent = "Type something to search.";
@@ -318,7 +330,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
   
-      if (!YT_API_KEY || YT_API_KEY === "PUT_YOUR_API_KEY_HERE") {
+      if (!YT_API_KEY) {
         if (statusText) statusText.textContent = "Add your YouTube API key in app.js (YT_API_KEY).";
         return;
       }
@@ -346,7 +358,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   
-    // Favorites modal events
     if (closeFav && favModal) closeFav.addEventListener("click", closeFavModal);
     if (favModal) {
       favModal.addEventListener("click", (e) => {
@@ -355,74 +366,44 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   
     if (saveFavBtn) {
-      saveFavBtn.addEventListener("click", () => {
+      saveFavBtn.addEventListener("click", async () => {
         if (!selectedVideo) return;
   
         const selectedId = playlistSelect ? playlistSelect.value : "";
         const newName = (newPlaylistName?.value || "").trim();
   
-        if (!selectedId && !newName) {
-          if (favError) favError.textContent = "Choose a playlist OR type a new playlist name.";
-          return;
-        }
+        try {
+          let targetId = selectedId;
   
-        let pls = loadPlaylists();
-        let targetId = selectedId;
+          if (!targetId && newName) {
+            const created = await createPlaylist(newName);
+            targetId = created.id;
+          }
   
-        // Create playlist if needed
-        if (!targetId && newName) {
-          const exists = pls.some((p) => (p.name || "").toLowerCase() === newName.toLowerCase());
-          if (exists) {
-            if (favError) favError.textContent = "Playlist name already exists.";
+          if (!targetId) {
+            if (favError) favError.textContent = "Choose a playlist OR type a new playlist name.";
             return;
           }
-          const newPl = { id: "pl_" + Date.now(), name: newName, videos: [] };
-          pls.push(newPl);
-          targetId = newPl.id;
+  
+          await addYoutubeToPlaylist(targetId, selectedVideo);
+  
+          closeFavModal();
+          alert("Saved!");
+        } catch (err) {
+          if (favError) favError.textContent = err.message;
         }
-  
-        const pl = pls.find((p) => p.id === targetId);
-        if (!pl) {
-          if (favError) favError.textContent = "Playlist not found.";
-          return;
-        }
-  
-        pl.videos = pl.videos || [];
-        const already = pl.videos.some((v) => v.id === selectedVideo.id);
-        if (already) {
-          if (favError) favError.textContent = "This video is already in that playlist.";
-          return;
-        }
-  
-        // ✅ ADD RATING DEFAULT
-        pl.videos.push({
-          id: selectedVideo.id,
-          title: selectedVideo.title,
-          thumb: selectedVideo.thumb,
-          rating: 0,
-        });
-  
-        savePlaylists(pls);
-  
-        closeFavModal();
-        alert("Saved!");
       });
     }
   
-    /*********************
-      PLAYLISTS PAGE LOGIC
-    *********************/
+    // ---------- PLAYLISTS PAGE ----------
     const playlistList = $("playlistList");
     const videosArea = $("videosArea");
     const activePlaylistName = $("activePlaylistName");
     const activePlaylistMeta = $("activePlaylistMeta");
-  
     const filterInput = $("filterInput");
     const sortSelect = $("sortSelect");
-  
     const deletePlaylistBtn = $("deletePlaylistBtn");
     const playPlaylistBtn = $("playPlaylistBtn");
-  
     const newPlaylistBtn = $("newPlaylistBtn");
     const plModal = $("plModal");
     const closeModal = $("closeModal");
@@ -430,11 +411,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const createPlaylistBtn = $("createPlaylistBtn");
     const modalError = $("modalError");
   
-    // Play modal (optional exists in your playlists.html)
-    const playModal = $("playModal");
-    const closePlay = $("closePlay");
-    const player = $("player");
-    const playTitle = $("playTitle");
+    // MP3 elements (you added them in playlists.html)
+    const uploadMp3Btn = $("uploadMp3Btn");
+    const mp3Input = $("mp3Input");
   
     // Toast (optional)
     const toast = $("toast");
@@ -449,60 +428,49 @@ document.addEventListener("DOMContentLoaded", () => {
       toastTimer = setTimeout(() => toast.classList.add("hidden"), 2500);
     }
   
-    function openPlayer(videoId, titleText) {
-      // You asked earlier for play to open YouTube new tab, but your playlists.html has a modal.
-      // We'll OPEN NEW TAB to keep it consistent:
-      openYoutube(videoId);
-      // If you want modal play instead, tell me and I will switch.
+    // ⭐ rating stars
+    function renderStars(rating, itemId) {
+      let html = "";
+      for (let i = 1; i <= 5; i++) {
+        const on = i <= (rating || 0);
+        html += `<span class="star ${on ? "on" : ""}" data-rate="${i}" data-item="${escapeHtml(itemId)}">★</span>`;
+      }
+      return html;
     }
   
-    if (closePlay && playModal) {
-      closePlay.addEventListener("click", () => {
-        playModal.classList.add("hidden");
-        if (player) player.src = "";
-      });
-    }
+    // Default thumb for MP3 (small inline icon)
+    const MP3_THUMB =
+      "data:image/svg+xml;utf8," +
+      encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="225">
+          <rect width="100%" height="100%" fill="#111"/>
+          <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#fff" font-size="48">MP3</text>
+        </svg>`
+      );
   
-    // Only run if playlists.html elements exist
+    // Only run playlists logic if playlists elements exist
     if (playlistList && videosArea && activePlaylistName && activePlaylistMeta) {
       let selectedPlaylistId = null;
+      let playlistsCache = [];
+  
+      async function refreshPlaylists() {
+        playlistsCache = await fetchPlaylists();
+        renderSidebar();
+        if (!selectedPlaylistId && playlistsCache.length > 0) {
+          selectPlaylist(playlistsCache[0].id);
+        } else {
+          renderVideos();
+        }
+      }
   
       function getSelectedPlaylist() {
-        return loadPlaylists().find((p) => p.id === selectedPlaylistId) || null;
-      }
-  
-      // ⭐⭐ RATING HELPERS (ADDED) ⭐⭐
-      function renderStars(rating, videoId) {
-        let html = "";
-        for (let i = 1; i <= 5; i++) {
-          const on = i <= rating;
-          html += `<span class="star ${on ? "on" : ""}" data-rate="${i}" data-video="${escapeHtml(
-            videoId
-          )}">★</span>`;
-        }
-        return html;
-      }
-  
-      function setRating(videoId, rate) {
-        const pls = loadPlaylists();
-        const pl = pls.find((p) => p.id === selectedPlaylistId);
-        if (!pl) return;
-  
-        const video = (pl.videos || []).find((v) => v.id === videoId);
-        if (!video) return;
-  
-        video.rating = rate;
-        savePlaylists(pls);
-  
-        renderVideos();
-        showToast("Rating saved ⭐");
+        return playlistsCache.find((p) => p.id === selectedPlaylistId) || null;
       }
   
       function renderSidebar() {
-        const pls = loadPlaylists();
         playlistList.innerHTML = "";
   
-        if (pls.length === 0) {
+        if (playlistsCache.length === 0) {
           playlistList.innerHTML = `<div class="pl-empty">No playlists yet. Click <b>+ New Playlist</b>.</div>`;
           activePlaylistName.textContent = "Choose a playlist";
           activePlaylistMeta.textContent = "";
@@ -511,20 +479,37 @@ document.addEventListener("DOMContentLoaded", () => {
   
           if (deletePlaylistBtn) deletePlaylistBtn.disabled = true;
           if (playPlaylistBtn) playPlaylistBtn.disabled = true;
+          if (uploadMp3Btn) uploadMp3Btn.disabled = true;
           return;
         }
   
-        pls.forEach((pl) => {
+        playlistsCache.forEach((pl) => {
           const item = document.createElement("button");
           item.type = "button";
           item.className = `pl-item ${pl.id === selectedPlaylistId ? "active" : ""}`;
           item.innerHTML = `
             <div class="pl-item-name">${escapeHtml(pl.name)}</div>
-            <div class="pl-item-count">${(pl.videos || []).length} videos</div>
+            <div class="pl-item-count">${(pl.videos || []).length} items</div>
           `;
           item.addEventListener("click", () => selectPlaylist(pl.id));
           playlistList.appendChild(item);
         });
+      }
+  
+      function selectPlaylist(id) {
+        const pl = playlistsCache.find((p) => p.id === id);
+        if (!pl) return;
+  
+        selectedPlaylistId = id;
+        activePlaylistName.textContent = pl.name;
+        activePlaylistMeta.textContent = `${(pl.videos || []).length} items`;
+  
+        if (deletePlaylistBtn) deletePlaylistBtn.disabled = false;
+        if (playPlaylistBtn) playPlaylistBtn.disabled = false;
+        if (uploadMp3Btn) uploadMp3Btn.disabled = false;
+  
+        renderSidebar();
+        renderVideos();
       }
   
       function renderVideos() {
@@ -536,106 +521,94 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
   
-        let vids = [...(pl.videos || [])];
+        let items = [...(pl.videos || [])];
   
         // Filter
         const q = (filterInput?.value || "").trim().toLowerCase();
-        if (q) vids = vids.filter((v) => (v.title || "").toLowerCase().includes(q));
+        if (q) items = items.filter((v) => (v.title || "").toLowerCase().includes(q));
   
-        // Sort (UPDATED: includes rating)
+        // Sort
         const mode = sortSelect?.value || "az";
         if (mode === "rate") {
-          vids.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          items.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         } else {
-          vids.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
-          if (mode === "za") vids.reverse();
+          items.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+          if (mode === "za") items.reverse();
         }
   
-        if (vids.length === 0) {
+        if (items.length === 0) {
           videosArea.className = "pl-videos-empty";
-          videosArea.textContent = "No videos found in this playlist.";
+          videosArea.textContent = "No items found in this playlist.";
           return;
         }
   
         videosArea.className = "pl-videos-grid";
         videosArea.innerHTML = "";
   
-        vids.forEach((v) => {
-          if (typeof v.rating !== "number") v.rating = 0;
+        items.forEach((v) => {
+          const itemId = v.videoId || v.id; // yt uses videoId, mp3 uses id
+          const isMp3 = v.type === "mp3";
+  
+          const thumb = isMp3 ? (v.thumb || MP3_THUMB) : (v.thumb || MP3_THUMB);
   
           const card = document.createElement("div");
           card.className = "pl-video-card";
   
-          // ✅ SAME DESIGN + JUST ADD RATING BLOCK
           card.innerHTML = `
             <div class="pl-thumb-wrap">
-              <img class="pl-thumb" src="${escapeHtml(v.thumb || "")}" alt="thumb" />
+              <img class="pl-thumb" src="${escapeHtml(thumb)}" alt="thumb" />
             </div>
   
             <div class="pl-vinfo">
               <div class="pl-vtitle" title="${escapeHtml(v.title)}">${escapeHtml(v.title)}</div>
   
               <div class="pl-rating">
-                ${renderStars(v.rating || 0, v.id)}
+                ${renderStars(v.rating || 0, itemId)}
               </div>
   
               <div class="pl-vactions">
-                <button class="small-btn" type="button" data-open="${escapeHtml(v.id)}">Open</button>
-                <button class="small-btn danger-mini" type="button" data-remove="${escapeHtml(v.id)}">Remove</button>
+                <button class="small-btn" type="button" data-open="${escapeHtml(itemId)}">Open</button>
+                <button class="small-btn danger-mini" type="button" data-remove="${escapeHtml(itemId)}">Remove</button>
               </div>
             </div>
           `;
   
           // Open
           card.querySelector("[data-open]")?.addEventListener("click", () => {
-            openPlayer(v.id, v.title);
+            if (isMp3) {
+              window.open(v.url, "_blank");
+            } else {
+              openYoutube(v.videoId);
+            }
           });
   
           // Remove
-          card.querySelector("[data-remove]")?.addEventListener("click", () => {
-            removeVideoFromPlaylist(v.id);
+          card.querySelector("[data-remove]")?.addEventListener("click", async () => {
+            try {
+              await removeItem(selectedPlaylistId, itemId);
+              await refreshPlaylists();
+              showToast("Removed.");
+            } catch (e) {
+              alert(e.message);
+            }
           });
   
-          // ⭐ Rating click (ADDED)
+          // Rating click
           card.querySelectorAll(".star").forEach((star) => {
-            star.addEventListener("click", () => {
+            star.addEventListener("click", async () => {
               const rate = Number(star.getAttribute("data-rate"));
-              setRating(v.id, rate);
+              try {
+                await rateItem(selectedPlaylistId, itemId, rate);
+                await refreshPlaylists();
+                showToast("Rating saved ⭐");
+              } catch (e) {
+                alert(e.message);
+              }
             });
           });
   
           videosArea.appendChild(card);
         });
-      }
-  
-      function selectPlaylist(id) {
-        const pls = loadPlaylists();
-        const pl = pls.find((p) => p.id === id);
-        if (!pl) return;
-  
-        selectedPlaylistId = id;
-        activePlaylistName.textContent = pl.name;
-        activePlaylistMeta.textContent = `${(pl.videos || []).length} videos`;
-  
-        if (deletePlaylistBtn) deletePlaylistBtn.disabled = false;
-        if (playPlaylistBtn) playPlaylistBtn.disabled = false;
-  
-        renderSidebar();
-        renderVideos();
-      }
-  
-      function removeVideoFromPlaylist(videoId) {
-        const pls = loadPlaylists();
-        const pl = pls.find((p) => p.id === selectedPlaylistId);
-        if (!pl) return;
-  
-        pl.videos = (pl.videos || []).filter((v) => v.id !== videoId);
-        savePlaylists(pls);
-  
-        activePlaylistMeta.textContent = `${(pl.videos || []).length} videos`;
-        renderSidebar();
-        renderVideos();
-        showToast("Removed from playlist");
       }
   
       // Modal create playlist
@@ -660,7 +633,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
   
       if (createPlaylistBtn) {
-        createPlaylistBtn.addEventListener("click", () => {
+        createPlaylistBtn.addEventListener("click", async () => {
           const name = (playlistNameInput?.value || "").trim();
           if (modalError) modalError.textContent = "";
   
@@ -669,45 +642,37 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
           }
   
-          const pls = loadPlaylists();
-          const exists = pls.some((p) => (p.name || "").toLowerCase() === name.toLowerCase());
-          if (exists) {
-            if (modalError) modalError.textContent = "Playlist name already exists.";
-            return;
+          try {
+            const pl = await createPlaylist(name);
+            closeModalFn();
+            await refreshPlaylists();
+            selectPlaylist(pl.id);
+            showToast("Playlist created");
+          } catch (e) {
+            if (modalError) modalError.textContent = e.message;
           }
-  
-          const newPl = { id: "pl_" + Date.now(), name, videos: [] };
-          pls.push(newPl);
-          savePlaylists(pls);
-  
-          closeModalFn();
-          renderSidebar();
-          selectPlaylist(newPl.id);
-          showToast("Playlist created");
         });
       }
   
       // Delete playlist
       if (deletePlaylistBtn) {
-        deletePlaylistBtn.addEventListener("click", () => {
+        deletePlaylistBtn.addEventListener("click", async () => {
           const pl = getSelectedPlaylist();
           if (!pl) return;
-  
           if (!confirm(`Delete playlist "${pl.name}"?`)) return;
   
-          let pls = loadPlaylists();
-          pls = pls.filter((p) => p.id !== selectedPlaylistId);
-          savePlaylists(pls);
-  
-          selectedPlaylistId = null;
-          renderSidebar();
-  
-          const left = loadPlaylists();
-          if (left.length > 0) selectPlaylist(left[0].id);
+          try {
+            await deletePlaylist(pl.id);
+            selectedPlaylistId = null;
+            await refreshPlaylists();
+            showToast("Playlist deleted");
+          } catch (e) {
+            alert(e.message);
+          }
         });
       }
   
-      // Play playlist (open first video in new tab)
+      // Play playlist (open first item)
       if (playPlaylistBtn) {
         playPlaylistBtn.addEventListener("click", () => {
           const pl = getSelectedPlaylist();
@@ -715,7 +680,9 @@ document.addEventListener("DOMContentLoaded", () => {
             alert("This playlist is empty");
             return;
           }
-          openYoutube(pl.videos[0].id);
+          const first = pl.videos[0];
+          if (first.type === "mp3") window.open(first.url, "_blank");
+          else openYoutube(first.videoId);
         });
       }
   
@@ -723,9 +690,33 @@ document.addEventListener("DOMContentLoaded", () => {
       if (filterInput) filterInput.addEventListener("input", renderVideos);
       if (sortSelect) sortSelect.addEventListener("change", renderVideos);
   
-      // Init
-      renderSidebar();
-      const pls = loadPlaylists();
-      if (pls.length > 0) selectPlaylist(pls[0].id);
+      // MP3 Upload
+      if (uploadMp3Btn && mp3Input) {
+        uploadMp3Btn.addEventListener("click", () => {
+          if (!selectedPlaylistId) return;
+          mp3Input.value = "";
+          mp3Input.click();
+        });
+  
+        mp3Input.addEventListener("change", async () => {
+          const file = mp3Input.files?.[0];
+          if (!file || !selectedPlaylistId) return;
+  
+          try {
+            await uploadMp3ToPlaylist(selectedPlaylistId, file);
+            await refreshPlaylists();
+            showToast("MP3 uploaded ✅");
+          } catch (e) {
+            alert(e.message);
+          }
+        });
+      }
+  
+      // Init playlists
+      refreshPlaylists();
     }
+  
+    // ---------- Start: load session user ----------
+    // This will redirect protected pages if not logged in
+    loadMeOrRedirect();
   });
